@@ -29,7 +29,7 @@ encoder = LabelEncoder()
 encoder.fit(Y)
 encoded_Y = encoder.transform(Y)
 # convert integers to dummy variables (i.e. one hot encoded)
-y_train = np_utils.to_categorical(encoded_Y)
+# y_train = np_utils.to_categorical(encoded_Y)
 
 
 # load test dataset
@@ -42,7 +42,7 @@ encoder2 = LabelEncoder()
 encoder2.fit(y_test)
 encoded_Y2 = encoder.transform(y_test)
 # convert integers to dummy variables (i.e. one hot encoded)
-Y_test = np_utils.to_categorical(encoded_Y2)
+# y_test = np_utils.to_categorical(encoded_Y2)
 
 
 
@@ -52,29 +52,38 @@ print(len(X_train), 'train sequences')
 print(len(X_test), 'test sequences')
 print('X_train shape:', X_train.shape)
 print('X_test shape:', X_test.shape)
-print('y_train shape:', y_train.shape)
-print('y_test shape:', y_test.shape)
-print(y_test)
+# print('y_train shape:', y_train.shape)
+# print('y_test shape:', y_test.shape)
+# print(y_test)
 print('Build model...')
 
-Y_train = np_utils.to_categorical(y_train, nb_classes)
-Y_test = np_utils.to_categorical(y_test, nb_classes)
+X_train = X_train.reshape(1, X_train.shape[0], X_train.shape[1])
+X_test = X_test.reshape(1, X_test.shape[0], X_test.shape[1])
+print('X_train shape:', X_train.shape)
+print('X_test shape:', X_test.shape)
+
+Y_train = np_utils.to_categorical(encoded_Y, nb_classes)
+Y_test = np_utils.to_categorical(encoded_Y2, nb_classes)
+print(Y_train.shape)
+print(Y_test.shape)
+Y_train = Y_train.reshape(1, Y_train.shape[0], Y_train.shape[1])
+Y_test = Y_test.reshape(1, Y_test.shape[0], Y_test.shape[1])
 
 model = Sequential()
-model.add(LSTM(output_dim=hidden_units, init='uniform', inner_init='uniform',
-               forget_bias_init='one', activation='tanh', inner_activation='sigmoid', input_shape=X_train.shape[1:]))
+model.add(LSTM(units=hidden_units, kernel_initializer='uniform',
+           unit_forget_bias='one', activation='tanh', recurrent_activation='sigmoid', input_shape=(None,X_train.shape[2]),     return_sequences=True))
 
 
 model.add(Dense(nb_classes))
 model.add(Activation('softmax'))
 
 sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
-model.compile(loss='categorical_crossentropy', optimizer=sgd)
+model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+print(model.summary())
 
 print("Train...")
-model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=3, validation_data=(X_test, Y_test), show_accuracy=True)
+model.fit(X_train, Y_train, batch_size=batch_size, epochs=3)
 score, acc = model.evaluate(X_test, Y_test,
-                            batch_size=batch_size,
-                            show_accuracy=True)
+                        batch_size=batch_size)
 print('Test score:', score)
 print('Test accuracy:', acc)
